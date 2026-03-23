@@ -53,6 +53,13 @@ project(
 # * Git clokne the ABC repo at build time
 # * Run the BUILD_COMMAND "make libabc.a" for creating the ABC static library
 set(LIBABC_NAME libabc.a)
+if(APPLE AND CMAKE_OSX_SYSROOT)
+    set(ABC_CC "${CMAKE_C_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
+    set(ABC_CXX "${CMAKE_CXX_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
+else()
+    set(ABC_CC "${CMAKE_C_COMPILER}")
+    set(ABC_CXX "${CMAKE_CXX_COMPILER}")
+endif()
 ExternalProject_Add(
     engine-abc
     GIT_REPOSITORY https://github.com/berkeley-abc/abc.git
@@ -64,7 +71,7 @@ ExternalProject_Add(
     INSTALL_COMMAND ""
     UPDATE_COMMAND ""
     UPDATE_DISCONNECTED TRUE
-    BUILD_COMMAND $(MAKE) "CC=${CMAKE_C_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}" "CXX=${CMAKE_CXX_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}" ABC_USE_STDINT_H=1 ${LIBABC_NAME}
+    BUILD_COMMAND $(MAKE) "CC=${ABC_CC}" "CXX=${ABC_CXX}" ABC_USE_STDINT_H=1 ${LIBABC_NAME}
     LOG_CONFIGURE ON
     LOG_INSTALL ON
     # LOG_BUILD ON

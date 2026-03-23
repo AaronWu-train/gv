@@ -50,15 +50,29 @@ project(
     LANGUAGES CXX
     VERSION 0.3.0)
 
+# This project is configured as CXX-only, so CMAKE_C_COMPILER can be empty.
+# External C projects (e.g. abc, vcd-parser) still require a valid C compiler.
+if(CMAKE_C_COMPILER)
+    set(GV_C_COMPILER "${CMAKE_C_COMPILER}")
+else()
+    set(GV_C_COMPILER "cc")
+endif()
+
+if(CMAKE_CXX_COMPILER)
+    set(GV_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
+else()
+    set(GV_CXX_COMPILER "c++")
+endif()
+
 # * Git clokne the ABC repo at build time
 # * Run the BUILD_COMMAND "make libabc.a" for creating the ABC static library
 set(LIBABC_NAME libabc.a)
 if(APPLE AND CMAKE_OSX_SYSROOT)
-    set(ABC_CC "${CMAKE_C_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
-    set(ABC_CXX "${CMAKE_CXX_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
+    set(ABC_CC "${GV_C_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
+    set(ABC_CXX "${GV_CXX_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
 else()
-    set(ABC_CC "${CMAKE_C_COMPILER}")
-    set(ABC_CXX "${CMAKE_CXX_COMPILER}")
+    set(ABC_CC "${GV_C_COMPILER}")
+    set(ABC_CXX "${GV_CXX_COMPILER}")
 endif()
 ExternalProject_Add(
     engine-abc
@@ -131,8 +145,8 @@ ExternalProject_Add(
     BUILD_COMMAND
         ${CMAKE_COMMAND} -E env
             SDKROOT=${CMAKE_OSX_SYSROOT}
-            CC=${CMAKE_C_COMPILER}
-            CXX=${CMAKE_CXX_COMPILER}
+            CC=${GV_C_COMPILER}
+            CXX=${GV_CXX_COMPILER}
         $(MAKE) all
     LOG_CONFIGURE ON
     LOG_INSTALL ON

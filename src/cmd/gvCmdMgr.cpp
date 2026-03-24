@@ -264,26 +264,33 @@ GVCmdMgr::execOneCmd() {
         return GV_CMD_EXEC_DONE;
     }
 
-    // Read User Command Input
+    // Read command input from dofile or readline.
     string str = "";
-    char* execCmd = new char[1024];
     if (_dofile.is_open()) {
-        getline(_dofile, str);
-        strcpy(execCmd, str.c_str());
-        // Detect dofile comment(#) and blank command
+        if (!getline(_dofile, str)) {
+            closeDofile();
+            return GV_CMD_EXEC_NOP;
+        }
+        // IMPORTANT: close dofile as soon as EOF is observed, even for
+        // comments/blank lines, to avoid looping on EOF forever.
+        if (_dofile.eof()) closeDofile();
         if (str.substr(0, 2) != "//" && str.size() > 0)
-            cout << getPrompt() << execCmd << endl;
+            cout << getPrompt() << str << endl;
         else
             return GV_CMD_EXEC_COMMENT;
-        if (_dofile.eof()) closeDofile();
-    } else
-        execCmd = readline(getPrompt().c_str());
-    assert(execCmd);
+    } else {
+        char* line = readline(getPrompt().c_str());
+        assert(line);
+        str = line;
+        free(line);
+    }
 
-    // Detect dofile comment(#) for debugging
-    // if (str.substr(0, 2) == "//") return GV_CMD_EXEC_NOP;
+    // addHistory() trims the input in-place, so provide a mutable buffer.
+    vector<char> execBuf(str.begin(), str.end());
+    execBuf.push_back('\0');
 
-    if (addHistory(execCmd)) {
+    GVCmdExecStatus status = GV_CMD_EXEC_NOP;
+    if (addHistory(execBuf.data())) {
         add_history(_history.back().c_str());
         string option = "";
         GVCmdExec* e = parseCmd(option);
@@ -302,11 +309,9 @@ GVCmdMgr::execOneCmd() {
                 }
             }
         }
-        if (e) return e->exec(option);
+        if (e) status = e->exec(option);
     }
-    delete[] execCmd;
-
-    return GV_CMD_EXEC_NOP;
+    return status;
 }
 
 GVCmdExec*

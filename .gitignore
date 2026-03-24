@@ -8,8 +8,15 @@ include/
 
 # makefile files
 src/*/*.mak
-# cmake files
-build/
+# cmake / local build trees at repo root (leading / so we do not ignore
+# .github/workflows/build-linux.yml, build-macos.yml, etc.)
+/build*
+
+# local CMake overrides (see local.cmake.example)
+local.cmake
+
+# full build logs from e.g. make 2>&1 | tee make.log
+make.log
 # object files
 src/*/*.o
 # yosys extension files

@@ -1,0 +1,12 @@
+# Copy this file to local.cmake in the same directory as CMakeLists.txt.
+# local.cmake is gitignored and included automatically when present.
+# Put settings here that must run before project(), e.g. toolchain or compilers.
+#
+# Examples (uncomment and adjust as needed):
+#
+# set(CMAKE_OSX_SYSROOT "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk" CACHE PATH "" FORCE)
+#
+# set(CMAKE_C_COMPILER "/usr/bin/cc" CACHE FILEPATH "" FORCE)
+# set(CMAKE_CXX_COMPILER "/usr/bin/c++" CACHE FILEPATH "" FORCE)
+#
+# set(CMAKE_PREFIX_PATH "/opt/homebrew" ${CMAKE_PREFIX_PATH})

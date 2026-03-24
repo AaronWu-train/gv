@@ -6,6 +6,11 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     set(CMAKE_POLICY_VERSION_MINIMUM "3.5" CACHE STRING "" FORCE)
 endif()
 
+# Optional per-developer overrides (copy local.cmake.example -> local.cmake; gitignored).
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/local.cmake")
+    include("${CMAKE_CURRENT_SOURCE_DIR}/local.cmake")
+endif()
+
 # * Macro to exclude the directory from source
 function(EXCLUDE_FROM_LIST REMOVE_LIST TARGET_LIST)
     message(STATUS "Exclude the directory - ${${REMOVE_LIST}}")
@@ -64,16 +69,29 @@ else()
     set(GV_CXX_COMPILER "c++")
 endif()
 
+# Apple Clang may default to libc++ under CommandLineTools/include/c++/v1, which is
+# absent on some CLT installs; headers live under the macOS SDK instead.  Point
+# C++ builds at SDK libc++ so FetchContent and ExternalProject sub-builds work.
+set(GV_OSX_SYSROOT_FLAG "")
+set(GV_APPLE_LIBCXX_DIR "")
+if(APPLE AND CMAKE_OSX_SYSROOT)
+    set(GV_OSX_SYSROOT_FLAG " --sysroot=${CMAKE_OSX_SYSROOT}")
+    set(GV_APPLE_LIBCXX_DIR "${CMAKE_OSX_SYSROOT}/usr/include/c++/v1")
+    if(EXISTS "${GV_APPLE_LIBCXX_DIR}/algorithm")
+        add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-isystem;${GV_APPLE_LIBCXX_DIR}>")
+    endif()
+endif()
+set(GV_CC_FOR_EXTERNAL "${GV_C_COMPILER}${GV_OSX_SYSROOT_FLAG}")
+set(GV_CXX_FOR_EXTERNAL "${GV_CXX_COMPILER}${GV_OSX_SYSROOT_FLAG}")
+if(APPLE AND GV_APPLE_LIBCXX_DIR AND EXISTS "${GV_APPLE_LIBCXX_DIR}/algorithm")
+    string(APPEND GV_CXX_FOR_EXTERNAL " -isystem ${GV_APPLE_LIBCXX_DIR}")
+endif()
+
 # * Git clokne the ABC repo at build time
 # * Run the BUILD_COMMAND "make libabc.a" for creating the ABC static library
 set(LIBABC_NAME libabc.a)
-if(APPLE AND CMAKE_OSX_SYSROOT)
-    set(ABC_CC "${GV_C_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
-    set(ABC_CXX "${GV_CXX_COMPILER} --sysroot=${CMAKE_OSX_SYSROOT}")
-else()
-    set(ABC_CC "${GV_C_COMPILER}")
-    set(ABC_CXX "${GV_CXX_COMPILER}")
-endif()
+set(ABC_CC "${GV_CC_FOR_EXTERNAL}")
+set(ABC_CXX "${GV_CXX_FOR_EXTERNAL}")
 ExternalProject_Add(
     engine-abc
     GIT_REPOSITORY https://github.com/berkeley-abc/abc.git
@@ -102,6 +120,11 @@ set_target_properties(libabc PROPERTIES IMPORTED_LOCATION ${LIBABC_PATH})
 set(PATCH_DIR ${CMAKE_SOURCE_DIR}/patches)
 set(YOSYS_PATCH_CMAKE yosys_patch.cmake)
 set(LIBYOSYS_NAME libyosys.so)
+set(_gv_yosys_build_env ${CMAKE_COMMAND} -E env)
+if(APPLE AND CMAKE_OSX_SYSROOT)
+    list(APPEND _gv_yosys_build_env "SDKROOT=${CMAKE_OSX_SYSROOT}")
+endif()
+list(APPEND _gv_yosys_build_env "CC=${GV_CC_FOR_EXTERNAL}" "CXX=${GV_CXX_FOR_EXTERNAL}")
 ExternalProject_Add(
     engine-yosys
     GIT_REPOSITORY https://github.com/YosysHQ/yosys.git
@@ -114,7 +137,7 @@ ExternalProject_Add(
     UPDATE_COMMAND ""
     UPDATE_DISCONNECTED TRUE
     PATCH_COMMAND ${CMAKE_COMMAND} -P ${PATCH_DIR}/${YOSYS_PATCH_CMAKE}
-    BUILD_COMMAND $(MAKE) ${LIBYOSYS_NAME} && $(MAKE)
+    BUILD_COMMAND ${_gv_yosys_build_env} $(MAKE) ${LIBYOSYS_NAME} && $(MAKE)
     LOG_CONFIGURE ON
     LOG_INSTALL ON
     # LOG_BUILD ON
@@ -145,8 +168,8 @@ ExternalProject_Add(
     BUILD_COMMAND
         ${CMAKE_COMMAND} -E env
             SDKROOT=${CMAKE_OSX_SYSROOT}
-            CC=${GV_C_COMPILER}
-            CXX=${GV_CXX_COMPILER}
+            CC=${GV_CC_FOR_EXTERNAL}
+            CXX=${GV_CXX_FOR_EXTERNAL}
         $(MAKE) all
     LOG_CONFIGURE ON
     LOG_INSTALL ON

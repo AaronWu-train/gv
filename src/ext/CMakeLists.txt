@@ -6,7 +6,17 @@ file(GLOB MY_SOURCES "./*.cc")
 # Make the plugin library with the .so suffix
 set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
 
-# random_sim shells out to compile .sim_main.cpp; use the same CXX as this build (not bare "g++").
+# random_sim shells out to compile .sim_main.cpp; use the same CXX and crucial flags.
+# This prevents local CLT builds from failing to find libc++ headers at runtime compile.
+set(GV_RANDOM_SIM_CXXFLAGS "")
+if(APPLE AND CMAKE_OSX_SYSROOT)
+    string(APPEND GV_RANDOM_SIM_CXXFLAGS " --sysroot=${CMAKE_OSX_SYSROOT}")
+    set(_gv_random_sim_libcxx_dir "${CMAKE_OSX_SYSROOT}/usr/include/c++/v1")
+    if(EXISTS "${_gv_random_sim_libcxx_dir}/algorithm")
+        string(APPEND GV_RANDOM_SIM_CXXFLAGS " -isystem ${_gv_random_sim_libcxx_dir}")
+    endif()
+endif()
+
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/sim_random_compile_config.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/sim_random_compile_config.h

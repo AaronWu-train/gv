@@ -181,12 +181,15 @@ add_library(libvcd-parser STATIC IMPORTED)
 set_target_properties(libvcd-parser PROPERTIES IMPORTED_LOCATION ${LIB_VCD_PARSER_PATH})
 
 # * FMT Library
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 10.2.1)
-FetchContent_MakeAvailable(fmt)
-find_package(fmt) # for installed version of fmt
+find_package(fmt CONFIG QUIET)
+if(NOT fmt_FOUND)
+    FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 10.2.1
+    )
+    FetchContent_MakeAvailable(fmt)
+endif()
 
 # * Glucose
 FetchContent_Declare(

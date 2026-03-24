@@ -13,4 +13,4 @@ brew "boost-python3"
 brew "llvm"
 brew "gmp"
 brew "parallel"
-brew "fmt"
+

@@ -31,6 +31,11 @@ class AbcMgr;
 namespace gv {
 namespace cir {
 
+enum BddOrderMode { BDD_ORDER_FILE = 0,
+                    BDD_ORDER_RFILE,
+                    BDD_ORDER_DFS,
+                    BDD_ORDER_RDFS };
+
 class CirMgr {
     friend class CirComb;
     friend class CirSeq;
@@ -118,7 +123,7 @@ public:
     void addTotGate(CirGate* gate) { _totGateList.push_back(gate); };
     const bool readCirFromAbc(string, FileType);
     const bool readBlif(const string&) const;
-    const bool setBddOrder(const bool&);
+    const bool setBddOrder(const BddOrderMode&);
 
     CirGate* createNotGate(CirGate*);
     CirGate* createAndGate(CirGate*, CirGate*);

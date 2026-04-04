@@ -13,40 +13,85 @@
 #include "gvMsg.h"
 #include "util.h"
 
+#include <algorithm>
+#include <unordered_map>
+#include <unordered_set>
+
 extern BddMgrV* bddMgrV;  // MODIFICATION FOR SoCV BDD
 
 namespace gv {
 namespace cir {
 
-const bool CirMgr::setBddOrder(const bool& file) {
+const bool CirMgr::setBddOrder(const BddOrderMode& mode) {
     unsigned supportSize = getNumPIs() + 2 * getNumLATCHs();
-    unsigned bddspsize   = bddMgrV->getNumSupports();
     if (supportSize >= bddMgrV->getNumSupports()) {
         gvMsg(GV_MSG_ERR) << "BDD Support Size is Smaller Than Current Design Required !!" << endl;
         return false;
     }
-    // build support
+
+    const bool file = (mode == BDD_ORDER_FILE);
+    vector<CirPiGate*> piOrder;
+    vector<unsigned>   roLatchIdxOrder;
+
+    if (mode == BDD_ORDER_FILE || mode == BDD_ORDER_RFILE) {
+        for (unsigned i = 0, n = getNumPIs(); i < n; ++i)
+            piOrder.push_back(file ? getPi(i) : getPi(n - i - 1));
+        for (unsigned i = 0, n = getNumLATCHs(); i < n; ++i)
+            roLatchIdxOrder.push_back(file ? i : (n - i - 1));
+    } else {
+        // Use _dfsList from CirMgr::genDfsList() (already called after read netlist).
+        unordered_map<unsigned, unsigned> roGidToLatchIdx;
+        for (unsigned i = 0, n = getNumLATCHs(); i < n; ++i)
+            roGidToLatchIdx[getRo(i)->getGid()] = i;
+
+        unordered_set<unsigned> seenPiGid;
+        unordered_set<unsigned> seenRoGid;
+        for (CirGate* g : _dfsList) {
+            if (g->isPi()) {
+                if (seenPiGid.insert(g->getGid()).second)
+                    piOrder.push_back(static_cast<CirPiGate*>(g));
+            } else if (g->getType() == RO_GATE) {
+                unsigned gid = g->getGid();
+                if (seenRoGid.insert(gid).second) {
+                    auto it = roGidToLatchIdx.find(gid);
+                    if (it != roGidToLatchIdx.end())
+                        roLatchIdxOrder.push_back(it->second);
+                }
+            }
+        }
+        for (unsigned i = 0, n = getNumPIs(); i < n; ++i) {
+            CirPiGate* p = getPi(i);
+            if (!seenPiGid.count(p->getGid())) {
+                seenPiGid.insert(p->getGid());
+                piOrder.push_back(p);
+            }
+        }
+        unordered_set<unsigned> seenLatchIdx(roLatchIdxOrder.begin(), roLatchIdxOrder.end());
+        for (unsigned i = 0, n = getNumLATCHs(); i < n; ++i) {
+            if (!seenLatchIdx.count(i)) {
+                seenLatchIdx.insert(i);
+                roLatchIdxOrder.push_back(i);
+            }
+        }
+        if (mode == BDD_ORDER_RDFS) {
+            reverse(piOrder.begin(), piOrder.end());
+            reverse(roLatchIdxOrder.begin(), roLatchIdxOrder.end());
+        }
+    }
+
     unsigned supportId = 1;
-    // build PI (primary input)
-    for (unsigned i = 0, n = getNumPIs(); i < n; ++i) {
-        CirPiGate* gate = (file) ? getPi(i) : getPi(n - i - 1);
+    for (CirPiGate* gate : piOrder) {
         bddMgrV->addBddNodeV(gate->getGid(), bddMgrV->getSupport(supportId)());
         ++supportId;
     }
-    // build FF_CS (X: current state)
-    for (unsigned i = 0, n = getNumLATCHs(); i < n; ++i) {
-        CirRoGate* gate = (file) ? getRo(i) : getRo(n - i - 1);
-        bddMgrV->addBddNodeV(gate->getGid(), bddMgrV->getSupport(supportId)());
+    for (unsigned li : roLatchIdxOrder) {
+        bddMgrV->addBddNodeV(getRo(li)->getGid(), bddMgrV->getSupport(supportId)());
         ++supportId;
     }
-    // build FF_NS (Y: next state)
-    // here we only create "CS_name + _ns" for y_i
-    for (unsigned i = 0, n = getNumLATCHs(); i < n; ++i) {
-        CirRiGate* gate = (file) ? getRi(i) : getRi(n - i - 1);
-        bddMgrV->addBddNodeV(gate->getName(), bddMgrV->getSupport(supportId)());
+    for (unsigned li : roLatchIdxOrder) {
+        bddMgrV->addBddNodeV(getRi(li)->getName(), bddMgrV->getSupport(supportId)());
         ++supportId;
     }
-    // Constants (const0 node, id=0)
     bddMgrV->addBddNodeV(_const0->getGid(), BddNodeV::_zero());
     ++supportId;
 

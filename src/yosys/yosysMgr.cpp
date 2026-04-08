@@ -160,6 +160,8 @@ void YosysMgr::readVerilog(const string& fileName) {
     // const string command = "read_verilog -sv " + fileName;
     const string command = fmt::format("read_verilog -sv {0}", fileName);
     Yosys::run_pass(command);
+    const string auto_top = "hierarchy -auto-top";
+    Yosys::run_pass(auto_top);
     // saveDesign(designName);
     saveDesign(fileName);
     assignSignal();

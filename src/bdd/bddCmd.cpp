@@ -681,7 +681,7 @@ void BDrawCmd::help() const {
 }
 
 //----------------------------------------------------------------------
-//    BSETOrder < -File | -RFile | -DFS | -RDFS >
+//    BSETOrder < -File | -RFile >
 //----------------------------------------------------------------------
 GVCmdExecStatus
 BSetOrderCmd::exec(const string& option) {
@@ -697,20 +697,16 @@ BSetOrderCmd::exec(const string& option) {
         return GVCmdExec::errorOption(GV_CMD_OPT_EXTRA, options[1]);
     }
     string token = options[0];
-    BddOrderMode ord;
+    bool file    = false;
     if (myStrNCmp("-File", token, 2) == 0)
-        ord = BDD_ORDER_FILE;
+        file = true;
     else if (myStrNCmp("-RFile", token, 3) == 0)
-        ord = BDD_ORDER_RFILE;
-    else if (myStrNCmp("-DFS", token, 2) == 0)
-        ord = BDD_ORDER_DFS;
-    else if (myStrNCmp("-RDFS", token, 3) == 0)
-        ord = BDD_ORDER_RDFS;
+        file = false;
     else
         return GVCmdExec::errorOption(GV_CMD_OPT_ILLEGAL, token);
     bddMgrV->restart();
 
-    setBddOrder = cirMgr->setBddOrder(ord);
+    setBddOrder = cirMgr->setBddOrder(file);
     if (!setBddOrder)
         gvMsg(GV_MSG_ERR) << "Set BDD Variable Order Failed !!" << endl;
     else
@@ -718,7 +714,7 @@ BSetOrderCmd::exec(const string& option) {
     return GV_CMD_EXEC_DONE;
 }
 void BSetOrderCmd::usage(const bool& verbose) const {
-    cout << "Usage: BSETOrder < -File | -RFile | -DFS | -RDFS >" << endl;
+    cout << "Usage: BSETOrder < -File | -RFile >" << endl;
 }
 void BSetOrderCmd::help() const {
     cout << setw(20) << left << "BSETOrder: "

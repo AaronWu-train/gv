@@ -259,6 +259,11 @@ BddNodeV::existRecur(unsigned l, map<size_t, size_t>& existMap) const {
 BddNodeV
 BddNodeV::nodeMove(unsigned fromLevel, unsigned toLevel, bool& isMoved) const {
     assert(fromLevel > 1);
+    if (isTerminal()) {
+        // Terminal (0/1) has no variable levels to rename.
+        isMoved = true;
+        return (*this);
+    }
     if (int(getLevel() - fromLevel) >= abs(int(fromLevel - toLevel)) ||
         containNode(fromLevel - 1, 1)) {
         isMoved = false;
@@ -272,6 +277,7 @@ BddNodeV::nodeMove(unsigned fromLevel, unsigned toLevel, bool& isMoved) const {
 
 BddNodeV
 BddNodeV::nodeMoveRecur(unsigned fromLevel, unsigned toLevel, map<size_t, size_t>& moveMap) const {
+    if (isTerminal()) return (*this);
     unsigned thisLevel = getLevel();
     // assert(thisLevel >= fromLevel);
 

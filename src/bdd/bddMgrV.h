@@ -138,11 +138,11 @@ private:
     BddMap _bddMap;
 
     // For prove
-    bool _isFixed;
-    BddNodeV _initState;
-    BddNodeV _tr;
-    BddNodeV _tri;
-    vector<BddNodeV> _reachStates;
+    bool _isFixed;                 // reachability 是否已達固定點 (Reach_{k+1} == Reach_k)
+    BddNodeV _initState;           // 初始狀態集合 I(X) 的 BDD（通常為所有 FF current-state = 0）
+    BddNodeV _tr;                  // 轉移關係 TR(X, PI, Y) 的 BDD（含 PI 與 next-state Y 變數）
+    BddNodeV _tri;                 // 轉移關係的 PI-已消去版本 TRI(X, Y) = ∃PI . TR(X, PI, Y)
+    vector<BddNodeV> _reachStates; // reachable 狀態集合序列 Reach_0, Reach_1, ...（最後一個為目前 Reach）
 
     void reset();
     bool checkIteTerminal(const BddNodeV&, const BddNodeV&, const BddNodeV&,

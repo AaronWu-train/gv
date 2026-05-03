@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cassert>
+#include <vector>
 
 #include "cirMgr.h"
 #include "core/Solver.h"
@@ -55,6 +56,9 @@ public:
     virtual const GVBitVecX getDataValue(const gv::cir::CirGate* gate, const uint32_t& depth) const { return GVBitVecX(); };
     virtual const Var getVerifyData(const gv::cir::CirGate*, const uint32_t&) const {};
     virtual void solve_dimacs_cnf(const string& filename) {};
+
+    // MiniSAT Var indices (optional); empty = VSIDS default. Implemented by MinisatMgr only.
+    virtual void setSatDecisionOrder(const std::vector<int>& order) { (void)order; }
 
 private:
     gv::cir::CirMgr* _cirMgr;

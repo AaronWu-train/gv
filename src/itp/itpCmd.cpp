@@ -94,7 +94,6 @@ SATVerifyBmcCmd::exec(const string& option) {
     GVCmdExec::lexOptions(option, options);
 
     if (options.size() < 2) return GVCmdExec::errorOption(GV_CMD_OPT_MISSING, "");
-    if (options.size() > 2) return GVCmdExec::errorOption(GV_CMD_OPT_EXTRA, options[2]);
 
     bool isNet = false;
 
@@ -120,20 +119,50 @@ SATVerifyBmcCmd::exec(const string& option) {
             gvMsg(GV_MSG_ERR) << "Output with Index " << num << " does NOT Exist in Current Cir !!" << endl;
             return GVCmdExec::errorOption(GV_CMD_OPT_ILLEGAL, options[1]);
         }
-        monitorName = cirMgr->getPo(num)->getName();
-        gate        = cirMgr->getPo(num)->getIn0Gate();
+        gate        = cirMgr->getPo(num);
+        monitorName = gate->getName();
     }
-    // get PO's input, since the PO is actually a redundant node and should be removed
-    itpMgr->verifyPropertyBmc(monitorName, gate);
+
+    vector<int> decOrder;
+    int         satVerbosity = 0;
+    for (size_t i = 2; i < options.size();) {
+        if (myStrNCmp("-DecOrder", options[i], 4) == 0) {
+            ++i;
+            while (i < options.size() && options[i].size() && options[i][0] != '-') {
+                int v = 0;
+                if (!myStr2Int(options[i], v) || v < 0)
+                    return GVCmdExec::errorOption(GV_CMD_OPT_ILLEGAL, options[i]);
+                decOrder.push_back(v);
+                ++i;
+            }
+        } else if (myStrNCmp("-SatVerbose", options[i], 4) == 0) {
+            if (i + 1 >= options.size()) return GVCmdExec::errorOption(GV_CMD_OPT_MISSING, "");
+            if (!myStr2Int(options[i + 1], satVerbosity) || satVerbosity < 0)
+                return GVCmdExec::errorOption(GV_CMD_OPT_ILLEGAL, options[i + 1]);
+            i += 2;
+        } else
+            return GVCmdExec::errorOption(GV_CMD_OPT_ILLEGAL, options[i]);
+    }
+
+    CirGate* monitor = gate;
+    if (!isNet) {
+        monitor = new CirAigGate(cirMgr->getNumTots(), 0);
+        cirMgr->addTotGate(monitor);
+        monitor->setIn0(gate->getIn0Gate(), gate->getIn0().isInv());
+        monitor->setIn1(cirMgr->_const1, false);
+    }
+
+    itpMgr->verifyPropertyBmc(monitorName, monitor, decOrder, satVerbosity);
 
     return GV_CMD_EXEC_DONE;
 }
 
 void SATVerifyBmcCmd::usage(const bool& verbose) const {
-    cout << "Usage: SATVerify BMC < -GateId <gateId> | -Output < outputIndex >> " << endl;
+    cout << "Usage: SATVerify BMC < -GateId <gateId> | -Output <outputIndex> > [-DecOrder <Var> ...] [-SatVerbose <0|1>]" << endl;
 }
 
 void SATVerifyBmcCmd::help() const {
     cout << setw(20) << left << "SATVerify BMC:"
-         << "check the monitor by bounded model checking" << endl;
+         << "bounded model checking; optional MiniSAT branch order (-DecOrder uses internal Var ids)"
+         << endl;
 }

@@ -191,6 +191,17 @@ SolverV::newVar() {
     return index;
 }
 
+void SolverV::setExplicitDecisionOrder(const vec<Var>& order_arg) {
+    explicit_decision_order.clear();
+    for (int i = 0; i < order_arg.size(); i++) explicit_decision_order.push(order_arg[i]);
+    use_explicit_decision_order = true;
+}
+
+void SolverV::clearExplicitDecisionOrder() {
+    explicit_decision_order.clear();
+    use_explicit_decision_order = false;
+}
+
 // Returns FALSE if immediate conflict.
 bool
 SolverV::assume(Lit p) {
@@ -694,7 +705,17 @@ SolverV::search(int nof_conflicts, int nof_learnts, const SearchParams& params) 
 
             // New variable decision:
             stats.decisions++;
-            Var next = order.select(params.random_var_freq);
+            Var next = gv_Var_Undef;
+            if (use_explicit_decision_order) {
+                for (int i = 0; i < explicit_decision_order.size(); i++) {
+                    Var v = explicit_decision_order[i];
+                    if (v >= 0 && v < nVars() && toLbool(assigns[v]) == gv_l_Undef) {
+                        next = v;
+                        break;
+                    }
+                }
+            }
+            if (next == gv_Var_Undef) next = order.select(params.random_var_freq);
 
             if (next == gv_Var_Undef) {
                 // Model found:

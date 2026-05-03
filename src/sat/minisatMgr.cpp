@@ -263,6 +263,22 @@ const bool MinisatMgr::existVerifyData(const CirGate* gate, const uint32_t& dept
     return getVerifyData(gate, depth);
 }
 
+void MinisatMgr::setDecisionOrder(const vector<Var>& order) {
+    vec<Var> v;
+    for (size_t i = 0; i < order.size(); ++i) v.push(order[i]);
+    _solver->setExplicitDecisionOrder(v);
+}
+
+void MinisatMgr::clearDecisionOrder() { _solver->clearExplicitDecisionOrder(); }
+
+void MinisatMgr::setSolverVerbosity(int level) { _solver->verbosity = level; }
+
+void MinisatMgr::setSatDecisionOrder(const std::vector<int>& order) {
+    vector<Var> v;
+    for (int x : order) v.push_back((Var)x);
+    setDecisionOrder(v);
+}
+
 void MinisatMgr::solve_dimacs_cnf(const string& filename) {
     _solver_dimacs = new SolverV();
 

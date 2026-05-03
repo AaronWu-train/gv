@@ -70,7 +70,8 @@ int main(int argc, char** argv) {
     // cout << "[EXPERIMENTAL VERSION FOR CMAKE v0.1]\n";
     // clang-format off
     if (!(initCommonCmd() && initVrfCmd() && initAbcCmd() && initModCmd() && initBddCmd() && initProveCmd() 
-           && initCirCmd() && initYosysCmd() && initSimCmd() && initAppCmd() && initSatCmd() && initExpCmd()))
+           && initCirCmd() && initYosysCmd() && initSimCmd() && initAppCmd() && initSatCmd() && initItpCmd()
+           && initExpCmd()))
         return 1;
     // clang-format on
 

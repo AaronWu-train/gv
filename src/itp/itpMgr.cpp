@@ -52,7 +52,8 @@ void ItpMgr::verifyPropertyItp(const string &name, const CirGate *monitor) {
     reset();
 }
 
-void ItpMgr::verifyPropertyBmc(const string &name, const CirGate *monitor) {
+void ItpMgr::verifyPropertyBmc(const string &name, const CirGate *monitor,
+                               const std::vector<int> &satDecOrder, int satVerbosity) {
     // Initialize
     // duplicate the network, so you can modified
     // the ntk for the proving property without
@@ -66,6 +67,8 @@ void ItpMgr::verifyPropertyBmc(const string &name, const CirGate *monitor) {
     // Prove the monitor here!!
     pRes.setMaxDepth(1000);
     pRes.setSatSolver(gvSatSolver);
+    pRes.setSatDecOrder(satDecOrder);
+    pRes.setSatVerbosity(satVerbosity);
     indBmc(monitor, pRes);
 
     pRes.reportResult(name);
@@ -80,6 +83,10 @@ void ItpMgr::indBmc(const CirGate *monitor, SatProofRes &pRes) {
     SatSolverMgr *gvSatSolver = pRes.getSatSolver();
     bind(gvSatSolver);
 
+    // BMC entry path always constructs MinisatMgr (see verifyPropertyBmc).
+    auto *ms = static_cast<MinisatMgr *>(gvSatSolver);
+    if (pRes.getSatVerbosity() > 0) ms->setSolverVerbosity(pRes.getSatVerbosity());
+
     uint32_t i = 0;
     // GVNetId  I = buildInitState();
     CirGate *I = buildInitState();
@@ -93,6 +100,7 @@ void ItpMgr::indBmc(const CirGate *monitor, SatProofRes &pRes) {
         gvSatSolver->assumeRelease();
         gvSatSolver->assumeProperty(monitor, false, i);
         gvSatSolver->simplify();
+        if (!pRes.getSatDecOrder().empty()) gvSatSolver->setSatDecisionOrder(pRes.getSatDecOrder());
         // Assumption Solver: If SAT, diproved!
         if (gvSatSolver->assump_solve()) {
             pRes.setFired(i);
@@ -406,9 +414,8 @@ void ItpMgr::retrieveProof(Reader &rdr, vector<unsigned int> &clausePos, vector<
 }
 
 CirGate *ItpMgr::buildInitState() const {
-    // TODO: build initial state
-    CirAigGate *I;
-    return I;
+    // Placeholder until full sequential reset encoding exists: valid gate pointer so BMC runs.
+    return _cirMgr->_const1;
 }
 
 // build the McMillan Interpolant

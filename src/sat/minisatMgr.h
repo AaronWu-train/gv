@@ -74,6 +74,13 @@ public:
 
     void solve_dimacs_cnf(const string& filename);
 
+    // Branch on listed solver Var indices first (order preserved); others use VSIDS afterward.
+    // Var indices match MiniSAT internals (same as DIMACS index minus one when applicable).
+    void setDecisionOrder(const vector<Var>& order);
+    void clearDecisionOrder();
+    void setSolverVerbosity(int level);
+    void setSatDecisionOrder(const std::vector<int>& order) override;
+
 private:
     const Var newVar();
     /*const Var getVerifyData(const gv::cir::CirGate*, const uint32_t&) const;*/

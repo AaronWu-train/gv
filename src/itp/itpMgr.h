@@ -35,7 +35,8 @@ namespace itp {
 
 class SatProofRes {
 public:
-    SatProofRes(gv::sat::SatSolverMgr* s = 0) : _proved(UINT_MAX), _fired(UINT_MAX), _maxDepth(UINT_MAX), _satSolver(s) {}
+    SatProofRes(gv::sat::SatSolverMgr* s = 0)
+        : _proved(UINT_MAX), _fired(UINT_MAX), _maxDepth(UINT_MAX), _satSolver(s), _satVerbosity(0) {}
 
     void setProved(size_t i) { _proved = i; }
     void setFired(size_t i) { _fired = i; }
@@ -51,6 +52,11 @@ public:
     /*gv::sat::MinisatMgr* getSatSolver() const { return _satSolver; }*/
     gv::sat::SatSolverMgr* getSatSolver() const { return _satSolver; }
 
+    void setSatDecOrder(const std::vector<int>& v) { _satDecOrder = v; }
+    const std::vector<int>& getSatDecOrder() const { return _satDecOrder; }
+    void                   setSatVerbosity(int v) { _satVerbosity = v; }
+    int                    getSatVerbosity() const { return _satVerbosity; }
+
     void reportResult(const string&) const;
     void reportCex(const gv::cir::CirGate*, const gv::cir::CirMgr* const) const;
 
@@ -60,6 +66,8 @@ private:
     size_t _maxDepth;  // maximum proof depth
     /*gv::sat::MinisatMgr* _satSolver;*/
     gv::sat::SatSolverMgr* _satSolver;
+    std::vector<int>       _satDecOrder;
+    int                    _satVerbosity;
 };
 }  // namespace itp
 }  // namespace gv
@@ -74,7 +82,8 @@ public:
 
     // entry point for SoCV SAT property checking
     void verifyPropertyItp(const string& name, const gv::cir::CirGate* monitor);
-    void verifyPropertyBmc(const string& name, const gv::cir::CirGate* monitor);
+    void verifyPropertyBmc(const string& name, const gv::cir::CirGate* monitor,
+                           const std::vector<int>& satDecOrder = std::vector<int>(), int satVerbosity = 0);
     // Various proof engines
     void indBmc(const gv::cir::CirGate*, SatProofRes&);
     void itpUbmc(const gv::cir::CirGate*, SatProofRes&);

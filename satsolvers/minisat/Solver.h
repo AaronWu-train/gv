@@ -65,6 +65,9 @@ class SolverV
                                // negative value for static variable order.
         VarOrder    order;     // Keeps track of the decision variable order.
 
+        bool     use_explicit_decision_order;
+        vec<Var> explicit_decision_order;
+
         vec<vec<Clause*>> watches; // 'watches[lit]' is a list of constraints watching 'lit' (will
                                    // go there if literal becomes true).
         vec<char>         assigns; // The current assignments (gvlbool:s stored as char:s).
@@ -141,8 +144,9 @@ class SolverV
     public:
         SolverV()
             : ok(true), cla_inc(1), cla_decay(1), var_inc(1), var_decay(1),
-              order(assigns, activity), qhead(0), simpDB_assigns(0), simpDB_props(0),
-              _conflictNum(-1), _aborted(0), root_cla_count(0) // MODIFICATION FOR SoCV
+              order(assigns, activity), use_explicit_decision_order(false), qhead(0),
+              simpDB_assigns(0), simpDB_props(0), _conflictNum(-1), _aborted(0),
+              root_cla_count(0) // MODIFICATION FOR SoCV
               ,
               default_params(SearchParams(0.95, 0.999, 0.02)), expensive_ccmin(true), proof(NULL),
               verbosity(0), progress_estimate(0), conflict_id(ClauseId_NULL) {
@@ -230,6 +234,11 @@ class SolverV
             vec<Lit> tmp;
             return solve(tmp);
         }
+
+        // Explicit branching order: try these variables first (each decision picks the first
+        // unassigned in the list); remaining variables use VSIDS as usual.
+        void setExplicitDecisionOrder(const vec<Var>& order);
+        void clearExplicitDecisionOrder();
 
         double       progress_estimate; // Set by 'search()'.
         vec<gvlbool> model; // If problem is satisfiable, this vector contains the model (if any).
